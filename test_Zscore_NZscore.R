@@ -4,10 +4,10 @@
 library(patchwork)
 
 
-distT<-runif(100000,min = 5,max = 30)
-distT2<-runif(100000,min = 10,max = 50)
-distT3<-runif(100000,min = 1,max = 20)
-distT4<-runif(100000,min = 7,max = 35)
+distT<-runif(100000,min = 5,max = 30) #reference distribution of 100000 uniform values between 5 and 30
+distT2<-runif(100000,min = 10,max = 50) # test distribution
+distT3<-runif(100000,min = 1,max = 20) # test distribution
+distT4<-runif(100000,min = 7,max = 35) # test distribution
 
 calMean<-function(distT,n=10){
   res<-sum(sample(distT,n,replace = TRUE) > 18)
