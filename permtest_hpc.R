@@ -1,5 +1,5 @@
 # Set working directory
-setwd("/mnt/beegfs/dcorujo/REGIONER/")
+setwd("/mnt/beegfs/dcorujo/REGIONER/regioneRevision")
 
 # Load packages
 library(regioneReloaded)
