@@ -37,10 +37,22 @@ rsList <- lapply(anno$fileName, FUN = function(x) rtracklayer::import(paste0("./
 names(rsList) <- anno$target 
 ```
 
+# Split the analysis in two sets to showcase different aspecs
+
+Set1 - MAF, FOXA and CTCF/Cohesin -> show the association between known protein complexes
+Set2 - POLR2A, POLR2ApS2, H3K27Ac, H3K4me3, H3K36me3
+
+```{r}
+allENCODE <- rsList
+POLR2A <- rsList[grep("POLR2A", names(rsList))] 
+HIST <- rsList[grep("H3K", names(rsList))] 
+TF <- rsList[!grepl("POLR2A|H3K", names(rsList))]
+```
+
 # Export region sets as RData
 
 ```{r}
-save(rsList, file = "regionSets/ENCODE_sets.RData")
+save(allENCODE, POLR2A, HIST, TF, file = "regionSets/ENCODE_sets.RData")
 ```
 
 # Load region sets as RData
@@ -61,10 +73,18 @@ permRes <- crosswisePermTest(Alist = rsList,
                               mc.cores = 20)
 ```
 
-# Check results
+# Check results from local run
 
 ```{r}
 permRes <- makeCrosswiseMatrix(permRes)
 plotCrosswiseMatrix(permRes)
+```
+
+# Check results from HPC run
+
+```{r}
+load("hpcResults/permResENCODE.RData")
+permRes <- makeCrosswiseMatrix(permRes, zs.type = "norm_zscore", hc.method = "single", pvcut = 0.05, subEX = 0)
+plotCrosswiseMatrix(permRes, matrix_type = "association")
 ```
 
