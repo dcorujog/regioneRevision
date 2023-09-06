@@ -9,7 +9,7 @@ load("./regionSets/ENCODE_sets.RData")
 
 # Run permtest
 
-permRes <- crosswisePermTest(Alist = rsList,
+permResTF <- crosswisePermTest(Alist = TF,
                              genome = "hg38",
                              evFUN = "numOverlaps",
                              ranFUN = "resampleGenome",
@@ -17,6 +17,15 @@ permRes <- crosswisePermTest(Alist = rsList,
                              ntimes = 1000,
                              mc.cores = 20)
 
+permResPOLR2A <- crosswisePermTest(Alist = POLR2A,
+                               Blist = HIST,
+                               genome = "hg38",
+                               evFUN = "numOverlaps",
+                               ranFUN = "resampleGenome",
+                               count.once = TRUE,
+                               ntimes = 1000,
+                               mc.cores = 20)
+
 # Save results
 dir.create("hpcResults", showWarnings = FALSE)
-save(permRes, file = "./hpcResults/permResENCODE.RData")
+save(permResTF, permResPOLR2A, file = "./hpcResults/permResENCODE.RData")
