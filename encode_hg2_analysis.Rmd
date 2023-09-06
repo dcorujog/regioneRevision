@@ -3,11 +3,68 @@ title: "HepG2 ENCODE analysis"
 author: "David Corujo"
 date: "2023-09-05"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
+
+# Load packages
+
+```{r}
+library(rtracklayer)
+library(GenomicRanges)
+library(regioneReloaded)
+```
+
 
 # Load data for selected facors
 
-```{r}
+## Load metadata
 
+```{r}
+metadata <- read.delim("./encode_metadata.tsv", skip = 1)
+head(metadata)
+```
+
+## Load bed files and annotate with target name
+
+```{r}
+files <- list.files("./ENCODE", full.names = F)
+anno <- data.frame(fileName = files,
+                   fileID = gsub(".bigBed", "", files))
+anno$target <- unlist(lapply(anno$fileID, FUN = function(x) metadata$Target.of.assay[grep(x, metadata$Files)]))
+
+rsList <- lapply(anno$fileName, FUN = function(x) rtracklayer::import(paste0("./ENCODE/", x)))
+names(rsList) <- anno$target 
+```
+
+# Export region sets as RData
+
+```{r}
+save(rsList, file = "regionSets/ENCODE_sets.RData")
+```
+
+# Load region sets as RData
+
+```{r}
+load("regionSets/ENCODE_sets.RData")
+```
+
+# Test permTest
+
+```{r}
+permRes <- crosswisePermTest(Alist = rsList,
+                              genome = "hg38",
+                              evFUN = "numOverlaps",
+                              ranFUN = "resampleGenome",
+                              count.once = TRUE,
+                              ntimes = 10,
+                              mc.cores = 20)
+```
+
+# Check results
+
+```{r}
+permRes <- makeCrosswiseMatrix(permRes)
+plotCrosswiseMatrix(permRes)
 ```
 

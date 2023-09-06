@@ -5,26 +5,18 @@ setwd("/mnt/beegfs/dcorujo/REGIONER/")
 library(regioneReloaded)
 
 # Load region sets
-load("./regionSets/tf_sel.RData")
+load("./regionSets/ENCODE_sets.RData")
 
 # Run permtest
 
-perm_res <- crosswisePermTest(Alist = tf_sel,
-                              genome = "hg38",
-                              evFUN = "numOverlaps",
-                              ranFUN = "resampleGenome",
-                              count.once = TRUE,
-                              ntimes = 1000,
-                              mc.cores = 20)
-
-
-perm_res <- makeCrosswiseMatrix(perm_res)
+permRes <- crosswisePermTest(Alist = rsList,
+                             genome = "hg38",
+                             evFUN = "numOverlaps",
+                             ranFUN = "resampleGenome",
+                             count.once = TRUE,
+                             ntimes = 1000,
+                             mc.cores = 20)
 
 # Save results
 dir.create("hpcResults", showWarnings = FALSE)
-save(perm_res, file = "./hpcResults/remap_perm.RData")
-
-
-pdf("./hpcResults/plotcw.pdf")
-plotCrosswiseMatrix(perm_res, lineColor = "black")
-dev.off()
+save(perm_res, file = "./hpcResults/permResENCODE.RData")
