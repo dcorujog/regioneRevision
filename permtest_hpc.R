@@ -19,4 +19,4 @@ permRes <- crosswisePermTest(Alist = rsList,
 
 # Save results
 dir.create("hpcResults", showWarnings = FALSE)
-save(perm_res, file = "./hpcResults/permResENCODE.RData")
+save(permRes, file = "./hpcResults/permResENCODE.RData")
