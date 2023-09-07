@@ -84,7 +84,12 @@ plotCrosswiseMatrix(permRes)
 
 ```{r}
 load("hpcResults/permResENCODE.RData")
-permRes <- makeCrosswiseMatrix(permRes, zs.type = "norm_zscore", hc.method = "single", pvcut = 0.05, subEX = 0)
-plotCrosswiseMatrix(permRes, matrix_type = "association")
+permResTF <- makeCrosswiseMatrix(permResTF, zs.type = "z_score", pvcut = 0.01, subEX = 0, hc.method = "complete")
+plotCrosswiseMatrix(permResTF, matrix_type = "association")
 ```
 
+
+```{r}
+permResPOLR2A <- makeCrosswiseMatrix(permResPOLR2A, symm_matrix = F, clusterize = F, zs.type = "z_score")
+plotCrosswiseMatrix(permResPOLR2A, matrix_type = "association")
+```
