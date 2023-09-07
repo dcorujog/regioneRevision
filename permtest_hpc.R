@@ -38,4 +38,4 @@ permResHIST <- crosswisePermTest(Alist = c(POLR2A, TF),
 
 # Save results
 dir.create("hpcResults", showWarnings = FALSE)
-save(permResHIST, permResALL, permResPOLR2A, file = "./hpcResults/permResENCODE_circular.RData")
+save(permResALL, permResTF, permResHIST, file = "./hpcResults/permResENCODE_circular.RData")
