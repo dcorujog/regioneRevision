@@ -36,7 +36,7 @@ anno$target <- unlist(lapply(anno$fileID, FUN = function(x) metadata$Target.of.a
 extraCols_narrowPeak <- c(singnalValue = "numeric", pValue = "numeric",
                           qValue = "numeric", peak = "integer")
 rsList <- lapply(anno$fileName, FUN = function(x) rtracklayer::import(paste0("./ENCODE/", x), extraCols = extraCols_narrowPeak))
-names(rsList) <- anno$target 
+names(rsList) <- paste(anno$target, anno$fileID, sep ="_") 
 rsList
 ```
 
@@ -49,7 +49,7 @@ saveRDS(rsList, file = "regionSets/ENCODE_sets.RDS")
 # Load region sets as RDS
 
 ```{r}
-load("regionSets/ENCODE_sets.RDS")
+rsList <- readRDS("regionSets/ENCODE_sets.RDS")
 ```
 
 # Test permTest
