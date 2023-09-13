@@ -74,8 +74,8 @@ plotCrosswiseMatrix(permRes)
 # Check results from HPC run
 
 ```{r}
-load("hpcResults/permResENCODE_circularData")
-permResTF <- makeCrosswiseMatrix(permResHIST, zs.type = "z_score", pvcut = 0.01, subEX = 0, symm_matrix = F)
+permRes <- readRDS("hpcResults/permResENCODE.RDS")
+permResTF <- makeCrosswiseMatrix(permRes, zs.type = "z_score", pvcut = 0.01, subEX = 0, hc.method = "single")
 plotCrosswiseMatrix(permResTF, matrix_type = "association")
 ```
 
