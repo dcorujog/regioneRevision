@@ -32,6 +32,8 @@ files <- list.files("./ENCODE", full.names = F)
 anno <- data.frame(fileName = files,
                    fileID = gsub(".bed.gz", "", files))
 anno$target <- unlist(lapply(anno$fileID, FUN = function(x) metadata$Target.of.assay[grep(x, metadata$Files)]))
+anno$lab <- unlist(lapply(anno$fileID, FUN = function(x) metadata$Lab[grep(x, metadata$Files)]))
+View(anno)
 
 extraCols_narrowPeak <- c(singnalValue = "numeric", pValue = "numeric",
                           qValue = "numeric", peak = "integer")
@@ -75,12 +77,28 @@ plotCrosswiseMatrix(permRes)
 
 ```{r}
 permRes <- readRDS("hpcResults/permResENCODE.RDS")
-permResTF <- makeCrosswiseMatrix(permRes, zs.type = "z_score", pvcut = 0.01, subEX = 0, hc.method = "single")
-plotCrosswiseMatrix(permResTF, matrix_type = "association")
+
+# Check all results
+permRes <- makeCrosswiseMatrix(permRes, zs.type = "z_score", pvcut = 0.01, subEX = 0)
+plotCrosswiseMatrix(permRes)
+
+# Some selection of factors that could give a nice illustrative example
+seltf <- c("CTCF", "RAD21", 
+           "MAFK_ENCFF458PBB", "MAFF", 
+           "POLR2A_", "POLR2G", 
+           "JUN_ENCFF079UOJ", "JUND_ENCFF562YSV",
+           "FOXA1_ENCFF081USG", "FOXA2_ENCFF759YCY")
+seltf2 <- c("POLR2A_", "FOXA1_ENCFF081USG", "FOXA2_ENCFF759YCY", "EZH2")
+selhist <- c("H3K27me3", "H3K4me3", "H3K27ac", "H3K4me2")
+
+# Symmetrical matrix with TFs
+permRes <- makeCrosswiseMatrix(permRes, zs.type = "z_score", pvcut = 0.01, subEX = 0, selectCol = seltf, selectRow = seltf)
+plotCrosswiseMatrix(permRes, matrix_type = "association")
+
+# Asymmetrical matrix with TF vs histones
+
+permRes <- makeCrosswiseMatrix(permRes, zs.type = "z_score", pvcut = 0.01, subEX = 0, selectCol = seltf2, selectRow = selhist, symm_matrix = F)
+plotCrosswiseMatrix(permRes, matrix_type = "association")
 ```
 
-
-```{r}
-permResPOLR2A <- makeCrosswiseMatrix(permResPOLR2A, symm_matrix = F, clusterize = F, zs.type = "z_score")
-plotCrosswiseMatrix(permResPOLR2A, matrix_type = "association")
-```
+# Local z-score examples
