@@ -1,0 +1,10 @@
+---
+title: "Genomic features association"
+author: "David Corujo"
+date: "2023-10-02"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
