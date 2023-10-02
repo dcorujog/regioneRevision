@@ -58,7 +58,7 @@ matXn<-as.data.frame(matXn[order(rownames(matXn)),])
 
 nameX<-colnames(matX)[1] # name of Granges that we want to compare with 
 
-vecLength<-round(seq(10,length(newSets[[nameX]]),length.out=10))
+vecLength<-round(seq(10,length(A),length.out=10))
 dt_test<-data.frame(frac=paste0("V",1:10),zs=matX[,nameX],nzs=matXn[,nameX],nreg=vecLength)
 
 p1<-ggplot(data=dt_test,aes(x=nreg,y = zs),) +
