@@ -7,4 +7,130 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Load packages
+
+```{r}
+library(regioneReloaded)
+library(GenomicRanges)
+library(rtracklayer)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(AnnotationHub)
+```
+
+# Load and filter ENCODE regionSets
+
+```{r}
+# Load ENCODE regionSets
+encodeRS <- readRDS("regionSets/ENCODE_sets.RDS")
+
+# Code snippet from Roberto to subsample a list of granges to the set with the 
+# minimum number of regions in the list (making all the sets the same size)
+
+# Function to filter upper quartile of reported peak scores from each experiment
+bestScore<-function(GR){
+  max(GR$score)
+  GR <- GR[GR$score >= quantile(GR$score)[4],]
+  return(GR)
+}
+
+# Filter by score
+setX <- lapply(encodeRS, bestScore)
+# Filter for standard chromosomes only
+setX <- lapply(setX, filterChromosomes) 
+# Subsample all sets to the size of the smallest set
+sapply(setX, length)
+filteredSets <- lapply(setX, sample, size = min(sapply(setX, length)))
+sapply(filteredSets, length)
+
+saveRDS(filteredSets, file = "regionSets/ENCODE_filtered.RDS")
+```
+
+# Create universe by merging all regions
+
+```{r}
+universe <- GRanges()
+for(i in 1:length(filteredSets)){
+  universe <- mergeRegions(universe, filteredSets[[i]])
+}
+
+saveRDS(universe, file = "regionSets/universe_ENCODE_filtered.RDS")
+```
+
+# Load genomic features to associate with
+
+## Gencode
+```{r}
+con <- "/Users/dcorujo/minastirith_mount/REF/GRCh38_no_alt/genes/gencode.v44.primary_assembly.basic.annotation.gff3.gz"
+gencode <- import.gff3(con)
+unique(gencode$type)
+
+# Extract CDS and UTRs only for genes with a known HGNC ID
+sel <- c("CDS", "three_prime_UTR", "five_prime_UTR")
+exons <- gencode[gencode$type %in% sel & !is.na(gencode$hgnc_id),]
+exons
+```
+
+## refTSS
+```{r}
+con <-  "/Users/dcorujo/minastirith_mount/REF/refTSS/refTSS_v4.1_human_coordinate.hg38.rds"
+refTSS <- readRDS(con)
+refTSS <- filterChromosomes(refTSS)
+refTSS <- refTSS[!is.na(refTSS$HGNC.MGI_ID)] # filter only for genes with a known HGNC ID
+refTSS
+```
+
+## TxDb
+```{r}
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+
+exons <- exons(txdb)
+introns <- unlist(intronsByTranscript(txdb))
+promoters <- promoters(txdb)
+
+txdbSets <- list("exons" = exons,
+                 "introns" = introns, 
+                 "promoters" = promoters)
+
+txdbSets <- lapply(txdbSets, filterChromosomes)
+txdbSets
+
+# Save RDS
+saveRDS(txdbSets, file = "regionSets/txdbSets.RDS")
+```
+
+## RepeatMasker
+```{r}
+ah <- AnnotationHub()
+query(ah, c("RepeatMasker", "Homo sapiens"))
+rmskhg38 <- ah[["AH99003"]]
+rmskhg38 <- filterChromosomes(rmskhg38)
+lineRep <- rmskhg38[rmskhg38$repFamily == "L1"]
+lineRep
+
+# Save RDS
+saveRDS(lineRep, file = "regionSets/lineRep.RDS")
+```
+
+# Permtest check
+
+```{r}
+encode <- readRDS("regionSets/ENCODE_filtered.RDS")
+transcripts <- readRDS("regionSets/txdbSets.RDS")
+repeats <- readRDS("regionSets/lineRep.RDS")
+universe <- readRDS("regionSets/universe_ENCODE_filtered.RDS")
+
+Alist <- encode
+Blist <- c(transcripts, "LINE1" = repeats)
+
+res <- crosswisePermTest(Alist,
+                         Blist,
+                         ranFUN = "resampleRegions",
+                         ntimes = 10,
+                         universe = universe,
+                         genome = "hg38")
+
+res <- makeCrosswiseMatrix(res, symm_matrix = F)
+
+plotCrosswiseMatrix(res)
+```
 
