@@ -101,4 +101,49 @@ permRes <- makeCrosswiseMatrix(permRes, zs.type = "z_score", pvcut = 0.01, subEX
 plotCrosswiseMatrix(permRes, matrix_type = "association")
 ```
 
-# Local z-score examples
+# Association results from Roberto
+
+## Load
+```{r}
+permRes <- readRDS("10_vs_all.rds")
+```
+
+## Make matrix
+
+```{r}
+permRes <- makeCrosswiseMatrix(permRes, symm_matrix = F, hc.method = "average")
+```
+
+## Plot
+
+```{r}
+plotCrosswiseMatrix(permRes)
+```
+
+# Multilocal z-score
+```{r}
+encode_filtered <- readRDS("regionSets/ENCODE_filtered.RDS")
+encode_universe <- readRDS("regionSets/universe_ENCODE_filtered.RDS")
+```
+
+```{r}
+mlz <- multiLocalZscore(encode_filtered$POLR2A_ENCFF159PYD,
+                        encode_filtered, 
+                        ranFUN = "resampleRegions", 
+                        ntimes = 100,
+                        genome = "hg38", 
+                        universe = encode_universe,
+                        window = 2000,
+                        step = 50)
+```
+
+```{r}
+mlz <- makeLZMatrix(mlz, normalize = T)
+plotLocalZScoreMatrix(mlz, maxVal = 1) +
+  theme_bw()
+```
+
+```{r}
+plotSingleLZ(mlz, RS = c("POLR2G_ENCFF551IJP", "H3K4me3_ENCFF982DUT"))
+```
+
