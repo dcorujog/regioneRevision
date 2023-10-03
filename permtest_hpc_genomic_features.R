@@ -20,13 +20,11 @@ Blist <- c(transcripts, "LINE1" = repeats)
 permRes <- crosswisePermTest(Alist,
                          Blist,
                          ranFUN = "resampleRegions",
-                         ntimes = 10,
                          universe = universe,
                          genome = "hg38",
                          count.once = TRUE,
                          ntimes = 10000,
                          mc.cores = cores)
-
 
 # Save results
 dir.create("hpcResults", showWarnings = FALSE)
