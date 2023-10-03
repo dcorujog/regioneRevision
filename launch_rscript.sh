@@ -10,4 +10,4 @@
 
 module load R/4.2.2-foss-2021b
 
-Rscript ${SLURM_SUBMIT_DIR}/permtest_hpc.R
+Rscript ${SLURM_SUBMIT_DIR}/permtest_hpc_genomic_features.R
