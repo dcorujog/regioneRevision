@@ -69,11 +69,7 @@ nzPerm <- function(A, sets, ranfun = "randomizeRegions", nt = 1000, uni = NULL) 
 }
 
 # Run tests with different randomization strategies
-permResList_RaR <- lapply(setX, FUN = nzPerm, sets = setX)
-permResList_ReG <- lapply(setX, FUN = nzPerm, sets = setX, ranfun = "resampleGenome")
-permResList_ReR <- lapply(setX, FUN = nzPerm, sets = setX, ranfun = "resampleRegions", uni = gR)
+permResList_RaR <- lapply(setX[1:15], FUN = nzPerm, sets = setX)
 
 # Store results
 saveRDS(permResList_RaR, file = "permResList_RaR.RDS")
-saveRDS(permResList_ReG, file = "permResList_ReG.RDS")
-saveRDS(permResList_ReR, file = "permResList_ReR.RDS")
