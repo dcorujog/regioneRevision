@@ -65,7 +65,7 @@ nzPerm <- function(A, sets, ranfun = "randomizeRegions", nt = 1000, uni = NULL) 
                                ranFUN = ranfun, 
                                genome = "hg38",
                                universe = uni,
-                               mc.cores = 60)
+                               mc.cores = 30)
 }
 
 # Run tests with different randomization strategies
