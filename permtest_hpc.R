@@ -5,21 +5,22 @@ setwd("/mnt/beegfs/dcorujo/REGIONER/regioneRevision")
 library(regioneReloaded)
 
 # Load region sets
-Alist <- readRDS("./regionSets/ENCODE_sets.RDS")
+encode <- readRDS("regionSets/ENCODE_filtered.RDS")
+universe <- readRDS("regionSets/universe_ENCODE_filtered.RDS")
 
-cores <- 60
+cores <- 50
 
 # Run permtest
 
 permRes <- crosswisePermTest(Alist = Alist,
-                                   Blist = Alist,
-                                   genome = "hg38",
-                                   evFUN = "numOverlaps",
-                                   ranFUN = "resampleGenome",
-                                   count.once = TRUE,
-                                   ntimes = 10000,
-                                   mc.cores = cores)
+                             Blist = Alist,
+                             genome = "hg38",
+                             evFUN = "numOverlaps",
+                             ranFUN = "resampleRegions",
+                             count.once = TRUE,
+                             ntimes = 5000,
+                             mc.cores = cores)
 
 # Save results
 dir.create("hpcResults", showWarnings = FALSE)
-saveRDS(permRes, file = "./hpcResults/permResENCODE.RDS")
+saveRDS(permRes, file = "./hpcResults/permResENCODE_ReR.RDS")
