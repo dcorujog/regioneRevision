@@ -23,9 +23,17 @@ plotCrosswiseMatrix(test1, ord_mat = list(1:35,1:10))
 plotCrosswiseMatrix(test1)
 ```
 
-# Plot nzs and zscore
+# Plot nzs and zscore for a specific comparison
 
 ```{r}
+matX<-t(cwPT@matrix$GMat)[c(paste0("A",1:10)),]
+matX<-as.data.frame(matX[order(rownames(matX)),])
+
+matXn<-t(cwPTn@matrix$GMat)
+matXn<-as.data.frame(matXn[order(rownames(matXn)),])
+
+nameX<-colnames(matX)[1] # name of Granges that we want to compare with 
+
 # Generate a table for plotting
 dt_test<-data.frame(frac=paste0("V",1:10),zs=matX[,nameX],nzs=matXn[,nameX],nreg=vecLength)
 dt_test
