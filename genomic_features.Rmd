@@ -15,6 +15,7 @@ library(GenomicRanges)
 library(rtracklayer)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(AnnotationHub)
+library(egg)
 ```
 
 # Load and filter ENCODE regionSets
@@ -132,5 +133,43 @@ res <- crosswisePermTest(Alist,
 res <- makeCrosswiseMatrix(res, symm_matrix = F)
 
 plotCrosswiseMatrix(res)
+```
+
+# Results
+
+## Load data from hpc run
+```{r}
+permRes <- readRDS("hpcResults/permResENCODE_vs_features.RDS")
+```
+
+## Make matrix
+```{r}
+permRes <- makeCrosswiseMatrix(permRes, symm_matrix = F)
+```
+
+## Plot matrix
+```{r}
+plotCrosswiseMatrix(permRes)
+```
+
+## Plot selected sets
+
+```{r}
+permRes <- makeCrosswiseMatrix(permRes, symm_matrix = F, selectCol = c("POLR2A_", "POLR2G", "H3K4me3", "H3K9me3", "H3K36me3"), zs.type = "norm_zscore")
+```
+
+```{r}
+p1 <- plotCrosswiseMatrix(permRes) +
+  scale_x_discrete(limits = c("promoters", "exons", "introns", "LINE1")) +
+  theme(axis.text.x = element_text(size = 8),
+        axis.text.y = element_text(size = 8)) +
+  labs(x = "",
+       y = "",
+       title = "Association with genomic features",
+       subtitle = "Normalized z-score matrix")
+
+pdf("plots/genomic_features_selection.pdf")
+grid.arrange(grobs = list(set_panel_size(p1, width = unit(3, "cm"), height = unit(6, "cm"))))
+dev.off()
 ```
 
