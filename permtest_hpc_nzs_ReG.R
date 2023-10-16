@@ -40,7 +40,7 @@ for(i in 1:length(setX)){
 
 # Function to run permTest in lapply
 
-nzPerm <- function(A, sets, ranfun = "randomizeRegions", nt = 1000, uni = NULL) {
+nzPerm <- function(A, sets, ranfun = "randomizeRegions", nt = 5000, uni = NULL) {
   
   # Vector of n of regions to use
   vecLength<- round(seq(100, length(A), length.out = 10))
@@ -61,16 +61,21 @@ nzPerm <- function(A, sets, ranfun = "randomizeRegions", nt = 1000, uni = NULL) 
   # Run permtest
   permRes <- crosswisePermTest(Alist = listA, 
                                Blist = sets, 
-                               ntimes = 5000, 
+                               ntimes = nt, 
                                ranFUN = ranfun, 
                                genome = "hg38",
                                universe = uni,
-                               mc.cores = 30)
+                               mc.cores = 30,
+                               count.once = T)
 }
 
+# Subset a few region sets to run the test on
+setNames <- c("MAFF_ENCFF005YUC", "FOXA1_ENCFF011QFM", "RAD21_ENCFF155CEQ", "POLR2A_ENCFF159PYD", 
+              "CTCF_ENCFF199YFA", "H3K9me3_ENCFF372HCL", "H3K27ac_ENCFF392KDI", "H3K4me3_ENCFF982DUT")
+subSetX <- setX[names(setX) %in% setNames]
+
 # Run tests with different randomization strategies
-permResList_ReG <- lapply(setX[1:15], FUN = nzPerm, sets = setX, ranfun = "resampleGenome")
+permResList_ReG <- lapply(subSetX, FUN = nzPerm, sets = setX, nt = 5000, ranfun = "resampleGenome")
 
 # Store results
-saveRDS(permResList_ReG, file = "permResList_ReG.RDS")
-names(setX)
+saveRDS(permResList_ReG, file = "hpcResults/permResList_ReG_countOnce.RDS")
