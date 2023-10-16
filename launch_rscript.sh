@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J RaR
+#SBATCH -J ReG
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=30
