@@ -76,7 +76,7 @@ setNames <- c("MAFF_ENCFF005YUC", "FOXA1_ENCFF011QFM", "RAD21_ENCFF155CEQ", "POL
 subSetX <- setX[names(setX) %in% setNames]
 
 # Run tests with different randomization strategies
-permResList_RaR <- lapply(subSetX, FUN = nzPerm, sets = setX, nt = 5)
+permResList_RaR <- lapply(subSetX, FUN = nzPerm, sets = setX, nt = 5000)
 
 # Store results
 saveRDS(permResList_RaR, file = "hpcResults/permResList_RaR_countOnce.RDS")
