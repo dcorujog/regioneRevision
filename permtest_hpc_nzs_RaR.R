@@ -43,8 +43,8 @@ for(i in 1:length(setX)){
 nzPerm <- function(A, sets, ranfun = "randomizeRegions", nt = 5000, uni = NULL) {
   
   # Vector of n of regions to use
-  # vecLength <- round(seq(100, length(A), length.out = 10))
-  vecLength <- round(quantile(seq(1, length(A))))
+  vecLength <- round(seq(100, length(A), length.out = 10))
+  # vecLength <- round(quantile(seq(1, length(A))))
 
   # Generate a list of 10 subsamples of increasing size from a region set
 
@@ -76,7 +76,7 @@ setNames <- c("MAFF_ENCFF005YUC", "FOXA1_ENCFF011QFM", "RAD21_ENCFF155CEQ", "POL
 subSetX <- setX[names(setX) %in% setNames]
 
 # Run tests with different randomization strategies
-permResList_RaR <- lapply(subSetX, FUN = nzPerm, sets = setX, nt = 5000)
+permResList_RaR <- lapply(subSetX, FUN = nzPerm, sets = setX, nt = 5)
 
 # Store results
 saveRDS(permResList_RaR, file = "hpcResults/permResList_RaR_countOnce.RDS")
