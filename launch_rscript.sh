@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J regioner
+#SBATCH -J RaR
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=30
@@ -10,4 +10,4 @@
 
 module load R/4.2.2-foss-2021b
 
-Rscript ${SLURM_SUBMIT_DIR}/testing_of_nzs_hpc.R
+Rscript ${SLURM_SUBMIT_DIR}/permtest_hpc_nzs_RaR.R
