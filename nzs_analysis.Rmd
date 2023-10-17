@@ -8,46 +8,160 @@ editor_options:
 ---
 
 # Load packages
+```{r}
+library(regioneReloaded)
+library(ggplot2)
+library(patchwork)
+library(reshape2)
+library(tidyverse)
+```
 
-# Check results from HPC run
+# Plot nzs and zscore for ALL comparisons
+
+## Function: individual plots
+```{r}
+funPlot <- function(full_df, Bname) {
+ggplot(full_df[full_df$B == Bname,], aes(x = fraction, y = score, color = type, group = type)) +
+  facet_grid(type~B, scale = "free") +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = function(x){c(min(0, x) * 1.1, max(0, x) * 1.1)}) +
+  scale_color_manual(values = c("green4", "darkorange")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+}
+```
+
+## Function: create list of plots, wrap and save
+```{r}
+wrapPlots <- function(r1, permList_zs, permList_nzs, ran_title = "RaR") {
+  
+  # Obtain permTest from list
+  cwPT <- permList_zs[[r1]]
+  cwPTn <- permList_nzs[[r1]]
+
+  # Extract matrices of ZS and nZS
+  matX<-t(cwPT@matrix$GMat)
+  matX<-as.data.frame(matX[order(rownames(matX)), order(colnames(matX))])
+  matX
+
+  matXn<-t(cwPTn@matrix$GMat)
+  matXn<-as.data.frame(matXn[order(rownames(matXn)), order(colnames(matXn))])
+  matXn
+
+  # Conver to dataframe to prepare for tidyr funcions
+  df <- data.frame(matX)
+  df$fraction <- rownames(df)
+  
+  df2 <- data.frame(matXn)
+  df2$fraction <- rownames(df2)
+  
+  # Melt ZS and nZS dfs into long format
+  meltmat <- tidyr::pivot_longer(df, cols = !fraction, names_to = "B", values_to = "score")
+  meltmat$type <- "zscore"
+  
+  meltmat2 <- tidyr::pivot_longer(df2, cols = !fraction, names_to = "B", values_to = "score")
+  meltmat2$type <- "n_zscore"
+  
+  # Join into a single df
+  full_df <- full_join(meltmat, 
+            meltmat2)
+  
+  # Reorder factors
+  full_df$type <- factor(full_df$type, levels = c("zscore", "n_zscore"))
+  
+  all_B <- unique(full_df$B)
+  
+  # Generate a list of plots using plotting function
+  plotList <- lapply(all_B, FUN = funPlot, full_df = full_df)
+  
+  # Plit in two sublists to generate two PDFs
+  subList1 <- plotList[1:15]
+  subList2 <- plotList[16:35]
+  
+  # Save PDFs
+  pdf(paste("plots/summary_", ran_title, "_", r1, "_1.pdf", sep = ""), height = 10, width = 20)
+  print(wrap_plots(subList1, ncol = 5))
+  dev.off()
+  
+  pdf(paste("plots/summary_", ran_title, "_", r1, "_2.pdf", sep = ""), height = 10, width = 20)
+  print(wrap_plots(subList2, ncol = 5))
+  dev.off() 
+}
+```
+
+# Check results from HPC run and load region sets
+```{r}
+regSets <- readRDS("regionSets/ENCODE_filterScore.RDS")
+
+permRes_RaR <- readRDS("hpcResults/permResList_RaR_countOnce.RDS")
+permRes_ReR <- readRDS("hpcResults/permResList_ReR_countOnce.RDS")
+permRes_ReG <- readRDS("hpcResults/permResList_ReG_countOnce.RDS")
+```
 
 # Generate matrix and plot for all tests
 
 ```{r}
-nzPermList_zs <- lapply(nzPermList, FUN = makeCrosswiseMatrix, symm_matrix = F, zs.type = "z_score")
-lapply(nzPermList_zs, FUN = plotCrosswiseMatrix)
+permList_zs_RaR <- lapply(permRes_RaR, FUN = makeCrosswiseMatrix, symm_matrix = F, zs.type = "z_score")
+permList_nzs_RaR <- lapply(permRes_RaR, FUN = makeCrosswiseMatrix, symm_matrix = F)
 
-test1 <- nzPermList[[2]]
-test1 <- makeCrosswiseMatrix(test1, symm_matrix = F)
-plotCrosswiseMatrix(test1, ord_mat = list(1:35,1:10))
-plotCrosswiseMatrix(test1)
+permList_zs_ReR <- lapply(permRes_ReR, FUN = makeCrosswiseMatrix, symm_matrix = F, zs.type = "z_score")
+permList_nzs_ReR <- lapply(permRes_ReR, FUN = makeCrosswiseMatrix, symm_matrix = F)
+
+permList_zs_ReG <- lapply(permRes_ReG, FUN = makeCrosswiseMatrix, symm_matrix = F, zs.type = "z_score")
+permList_nzs_ReG <- lapply(permRes_ReG, FUN = makeCrosswiseMatrix, symm_matrix = F)
+```
+
+## Run lapply
+
+```{r}
+setNames <- c("MAFF_ENCFF005YUC", "FOXA1_ENCFF011QFM", "RAD21_ENCFF155CEQ", "POLR2A_ENCFF159PYD", 
+              "CTCF_ENCFF199YFA", "H3K9me3_ENCFF372HCL", "H3K27ac_ENCFF392KDI", "H3K4me3_ENCFF982DUT")
+
+lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_RaR, permList_nzs_RaR, ran_title = "RaR")})
+lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReR, permList_nzs_ReR, ran_title = "ReR")})
+lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReG, permList_nzs_ReG, ran_title = "ReG")})
 ```
 
 # Plot nzs and zscore for a specific comparison
 
 ```{r}
-matX<-t(cwPT@matrix$GMat)[c(paste0("A",1:10)),]
-matX<-as.data.frame(matX[order(rownames(matX)),])
+
+r1 <- "CTCF_ENCFF199YFA"
+r2 <- "RAD21_ENCFF155CEQ" # name of Granges that we want to compare with 
+
+cwPT <- permList_zs[[r1]]
+cwPTn <- permList_nzs[[r1]]
+
+matX<-t(cwPT@matrix$GMat)
+matX<-as.data.frame(matX[order(rownames(matX)), order(colnames(matX))])
+matX
 
 matXn<-t(cwPTn@matrix$GMat)
-matXn<-as.data.frame(matXn[order(rownames(matXn)),])
-
-nameX<-colnames(matX)[1] # name of Granges that we want to compare with 
+matXn<-as.data.frame(matXn[order(rownames(matXn)), order(colnames(matXn))])
+matXn
 
 # Generate a table for plotting
-dt_test<-data.frame(frac=paste0("V",1:10),zs=matX[,nameX],nzs=matXn[,nameX],nreg=vecLength)
+dt_test<-data.frame(frac = rownames(matX),
+                    zs = matX[,r2],
+                    nzs = matXn[,r2])
 dt_test
 
-p1<-ggplot(data=dt_test,aes(x=nreg,y = zs),) +
-  geom_line( color="red")+
-  geom_point(color="red") + ggtitle(paste0("CREB1_ENCFF314KET vs ",nameX) )+
-  xlab("num. of regions") + ylab("z-score") + theme(plot.title = element_text(size=8))
+title <- paste(r1, r2, sep = " vs ")
+p1 <- ggplot(data=dt_test, aes(x=frac, y = zs, group = "x")) +
+  geom_line(color = "green4") +
+  geom_point(color = "green4") +
+  xlab("Fraction") +
+  ylab("z-score") +
+  labs(title = title) +
+  theme(plot.title = element_text(size = 9))
 
-p2<-ggplot(data=dt_test,aes(x=nreg,y = nzs),) +
-  geom_line( color="green")+
-  geom_point(color="green") + ggtitle(paste0("CREB1_ENCFF314KET vs ",nameX) )+
-  xlab("num. of regions") + ylab("norm z-score") +  theme(plot.title = element_text(size=8)) + ylim(0,20)
+p2<-ggplot(data=dt_test,aes(x = frac, y = nzs, group = "x"),) +
+  geom_line( color="darkorange") +
+  geom_point(color="darkorange") + 
+  xlab("Fraction") + 
+  ylab("norm z-score") +
+  coord_cartesian(ylim = c(0, 20))
 
 p1|p2 # plot results
 ```
-
