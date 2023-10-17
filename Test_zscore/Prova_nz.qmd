@@ -1,0 +1,226 @@
+---
+title: "Test_Normal_zscore"
+format: 
+  html:
+    code-background: true
+echo: false
+execute:
+  warning: false
+editor: visual
+
+---
+
+## Introduction
+
+[...]
+
+## Samples
+
+[...]
+
+```{r libraries}
+
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(ggvenn)
+library(patchwork)
+
+```
+```{r home_dir}
+homeDir<-"/Users/ilmalli/Documents/Test_zscore/"
+setwd(homeDir)
+
+```
+You can add options to executable code like this
+
+```{r funcions}
+
+permAB<-function(A,B,sampling =1,ntimes=5000){
+  A<- sample(A,round(length(A)*sampling),replace = FALSE)
+  observed<-sum(A %in% B)
+  permuted<-vector()
+  for(i in 1:ntimes){
+    permuted[i]<-sum(sample(100000,length(A),replace = FALSE) %in% B)
+  }
+  meanPerm<-mean(permuted)
+  sdPerm<-sd(permuted)
+  
+  zscore<- (observed - meanPerm)/sdPerm
+  nzscore <- zscore/sqrt(length(A))
+  nv<-length(A)
+    
+    return(c(nv,zscore,nzscore))
+}
+
+funX<-function(A,B,ntimes=1000){
+  listCax<-lapply(seq(0.1,1,0.1),permAB,A=A,B=B,ntimes=ntimes)
+  df<-as.data.frame(do.call(rbind,listCax))
+  colnames(df)<-c("n","zs","nzs")
+  return(df)
+}
+
+extNZS<-function(x){
+  res<-x$nzs
+}
+
+extZS<-function(x){
+  res<-x$zs
+}
+
+calcLSFD<-function(A,B,nrep=10,ntimes=1000){
+  lsdf<-lapply(rep(list(A),nrep),funX,B=B,ntimes=ntimes)
+  dfNZs<-reshape2::melt(as.data.frame(t(do.call(cbind,lapply(lsdf,extNZS)))))
+  dfNZs$value[is.infinite(dfNZs$value)]<-NA
+  dfZ<-reshape2::melt(as.data.frame(t(do.call(cbind,lapply(lsdf,extZS)))))
+  dfZs$value[is.infinite(dfZs$value)]<-NA
+  return(list(ZS=dfZ,nZS=dfNZs))
+}
+
+plotLSFD<-function(lsfd){
+  
+  p1 <- ggplot(data=lsfd$nZS, aes(x = variable, y=value )) +
+    geom_boxplot(color="black",fill='orange')+
+    ggtitle("nzs")
+  
+  p2 <- ggplot(data=lsfd$ZS, aes(x = variable, y=value )) +
+    geom_boxplot(color="black",fill='lightgreen')+
+    ggtitle("zs")
+  
+  return(p2 | p1)
+}
+
+simplePTplot<-function(df){
+  mnzs<-mean(df$nzs)
+  mx<-max(df$nzs)
+  mn<-min(df$nzs)
+  
+  p1<-ggplot(data=df, aes(x = n, y=zs )) +
+    geom_line(color="lightgreen")+
+    geom_point(color="lightgreen") +
+    ggtitle("zs")
+  
+  p2<-ggplot(data=df, aes(x = n, y=nzs )) +
+    geom_line(color="orange")+
+    geom_point(color="orange") +
+    ggtitle("nzs") + ylim(mn-(abs(mnzs*.5)),mx+(abs(mnzs*.5)))
+  
+  return(p1 | p2)
+  
+}
+```
+
+
+```{r simulated samples}
+
+setwd(homeDir)
+if(!file.exists("samples.RData")){
+
+Tester<-sample(100000,10000,replace = FALSE)
+test1<-c(sample(100000,450,replace = FALSE),sample(Tester,50))
+test2<-c(sample(100000,500,replace = FALSE))
+test3<-c(sample(100000,1000,replace = FALSE))
+test3<- test3[-(which(test3 %in% Tester))] |> sample(500) 
+save(test1,test2,test3,Tester,file="samples.RData")
+
+}else{
+  load("samples.RData")
+}
+
+```
+
+```{r}
+
+smpRes<-data.frame(name_samples=c("test1","test2","test3","Tester"),
+                   n_elements=c(length(test1),length(test2),length(test3),length(Tester)))
+
+ggplot(data=smpRes, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
+  geom_bar(stat = "identity") +
+  ggtitle("number of elements")
+
+list_of_vectors <- list("test1" = test1, "test2" = test2, "test3" = test3, "Tester" = Tester)
+
+ggvenn(list_of_vectors)
+```
+
+```{r calculate_sampleassociations}
+setwd(homeDir)
+
+if(!file.exists("simple_PT.RData")){
+
+df1<-funX(A=test1,B=Tester,ntimes = 5000)
+df2<-funX(A=test2,B=Tester,ntimes = 5000)
+df3<-funX(A=test3,B=Tester,ntimes = 5000)
+
+save(df1,df2,df3,file="simple_PT.RData")
+}else{
+  load("simple_PT.RData")
+}
+
+```
+
+```{r multiple_PTs}
+setwd(homeDir)
+if(!file.exists("multi_PT.RData")){
+  
+lsfd1 <- calcLSFD(A=test1,B=Tester, nrep = 30, ntimes= 1000)
+lsfd2 <- calcLSFD(A=test2,B=Tester, nrep = 30, ntimes= 1000)
+lsfd3 <- calcLSFD(A=test3,B=Tester, nrep = 30, ntimes= 1000)
+
+save(lsfd1,lsfd2,lsfd3,file="multi_PT.RData")
+}else{
+  load("multi_PT.RData")
+}
+
+
+```
+
+## Simple PermTest
+
+::: {.panel-tabset}
+
+# Test1 vs Tester SimplePT
+```{r}
+
+p1<-simplePTplot(df1)
+
+p1
+```
+
+# Test2 vs Tester SimplePT
+
+```{r}
+p2 <- simplePTplot(df2)
+p2
+```
+
+# Test3 vs Tester SimplePT
+
+```{r}
+p3 <- simplePTplot(df3)
+p3
+```
+
+:::
+
+## Multi PermTest
+
+::: {.panel-tabset}
+
+# Test1 vs Tester MultiPT
+```{r}
+
+plotLSFD(lsfd1)
+```
+
+# Test2 vs Tester MultiPT
+```{r}
+plotLSFD(lsfd2)
+```
+
+# Test2 vs Tester MultiPT
+```{r}
+plotLSFD(lsfd3)
+```
+
+:::
