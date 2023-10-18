@@ -1,22 +1,41 @@
 ---
 title: "Test_Normal_zscore"
+subtitle: "authors: Roberto Malinverni and David Corujo Gracia"
 format: 
   html:
-    code-background: true
-echo: false
-execute:
-  warning: false
-editor: visual
+    toc: true
+    theme: yeti
+    spacing: double
+    highlight: tango
+    # code-fold: true
+    # code-tools: true
+    # code-overflow: wrap
+    # code-block-border-left: "#008d69"
+    highlight-style: tango
+    execute:
+      warning: false
+      echo: false
+    fig-responsive: true
+    embed-resources: true
 
+html_dependency:
+  jQuery:
+      src: "https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"
+      script: "jquery.min.js"
+graphics: true
+linkcolor: blue
+fontsize: 15 pt
+urlcolor: blue
+editor: visual
 ---
 
 ## Introduction
 
-[...]
+To test the relationship between zscore and normalized zscore, we created a series of examples to illustrate in a simple way the relationship between the two values in the field of analysis by permutation.  
 
-## Samples
+To do this, we first simplified the problem and then reported using real analyses using example region sets obtained through ENCODE (link). 
 
-[...]
+
 
 ```{r libraries}
 
@@ -25,14 +44,20 @@ library(dplyr)
 library(reshape2)
 library(ggvenn)
 library(patchwork)
+library(nVennR)
 
 ```
+
 ```{r home_dir}
 homeDir<-"/Users/ilmalli/Documents/Test_zscore/"
 setwd(homeDir)
 
 ```
-You can add options to executable code like this
+
+```{r colors}
+nineColors<-c("#fd7f6f", "#7eb0d5", "#b2e061", "#bd7ebe", "#ffb55a", "#ffee65", "#beb9db", "#fdcce5", "#8bd3c7")
+```
+
 
 ```{r funcions}
 
@@ -62,29 +87,35 @@ funX<-function(A,B,ntimes=1000){
 
 extNZS<-function(x){
   res<-x$nzs
+  return(res)
 }
 
 extZS<-function(x){
   res<-x$zs
+  return(res)
 }
 
 calcLSFD<-function(A,B,nrep=10,ntimes=1000){
   lsdf<-lapply(rep(list(A),nrep),funX,B=B,ntimes=ntimes)
-  dfNZs<-reshape2::melt(as.data.frame(t(do.call(cbind,lapply(lsdf,extNZS)))))
+  X<-as.data.frame(t(do.call(cbind,lapply(lsdf,extNZS))))
+  colnames(X)<-lsdf[[1]]$n
+  dfNZs<-reshape2::melt(X)
   dfNZs$value[is.infinite(dfNZs$value)]<-NA
-  dfZ<-reshape2::melt(as.data.frame(t(do.call(cbind,lapply(lsdf,extZS)))))
+  Y<-as.data.frame(t(do.call(cbind,lapply(lsdf,extZS))))
+  colnames(Y)<-lsdf[[1]]$n
+  dfZs<-reshape2::melt(Y)
   dfZs$value[is.infinite(dfZs$value)]<-NA
-  return(list(ZS=dfZ,nZS=dfNZs))
+  return(list(ZS=dfZs,nZS=dfNZs))
 }
 
 plotLSFD<-function(lsfd){
   
   p1 <- ggplot(data=lsfd$nZS, aes(x = variable, y=value )) +
-    geom_boxplot(color="black",fill='orange')+
+    geom_boxplot(color="black",fill="#ffb55a")+
     ggtitle("nzs")
   
   p2 <- ggplot(data=lsfd$ZS, aes(x = variable, y=value )) +
-    geom_boxplot(color="black",fill='lightgreen')+
+    geom_boxplot(color="black",fill="#b2e061")+
     ggtitle("zs")
   
   return(p2 | p1)
@@ -96,13 +127,13 @@ simplePTplot<-function(df){
   mn<-min(df$nzs)
   
   p1<-ggplot(data=df, aes(x = n, y=zs )) +
-    geom_line(color="lightgreen")+
-    geom_point(color="lightgreen") +
+    geom_line(color="#b2e061")+
+    geom_point(color="#b2e061") +
     ggtitle("zs")
   
   p2<-ggplot(data=df, aes(x = n, y=nzs )) +
-    geom_line(color="orange")+
-    geom_point(color="orange") +
+    geom_line(color="#ffb55a")+
+    geom_point(color="#ffb55a") +
     ggtitle("nzs") + ylim(mn-(abs(mnzs*.5)),mx+(abs(mnzs*.5)))
   
   return(p1 | p2)
@@ -113,15 +144,21 @@ simplePTplot<-function(df){
 
 ```{r simulated samples}
 
+
 setwd(homeDir)
 if(!file.exists("samples.RData")){
 
-Tester<-sample(100000,10000,replace = FALSE)
-test1<-c(sample(100000,450,replace = FALSE),sample(Tester,50))
+Tester<-sample(100000,1000,replace = FALSE)
+test1<-c(sample(100000,200,replace = FALSE),sample(Tester,50))
+test1_bis<-c(sample(100000,1000,replace = FALSE),sample(Tester,50))
+test1_ter<-c(sample(100000,2000,replace = FALSE),sample(Tester,1000))
+
+
 test2<-c(sample(100000,500,replace = FALSE))
 test3<-c(sample(100000,1000,replace = FALSE))
 test3<- test3[-(which(test3 %in% Tester))] |> sample(500) 
-save(test1,test2,test3,Tester,file="samples.RData")
+
+save(test1,test1_bis,test1_ter,test2,test3,Tester,file="samples.RData")
 
 }else{
   load("samples.RData")
@@ -129,18 +166,36 @@ save(test1,test2,test3,Tester,file="samples.RData")
 
 ```
 
+## Simulated samples 
+
+5 vectors containing a set of numbers (not replicated)chosen from 1 to 100000 will be created using the following rules
+
+**Tester**    -     1000 random numbers chosen from our universe (1 to 100000) <br>
+**test1**     -     250 numbers including 50 present in Tester and 200 random (1 to 100000) <br>
+**test1_bis** -     1050 numbers of which 50 present in Tester and 1000 random (1 to 100000) <br>
+**test1_ter** -     3000 numbers of which 1000 present in Tester (all sample) and 2000 random (1 to 100000) <br>
+**test2**     -     500 random numbers (1 to 100000) <br>
+**test3**     -     500 random numbers but not present in Tester <br>
+
+**testX** samples will be associated with Tester using permutation tests to simulate divergent cases of association. <br>
+
 ```{r}
 
-smpRes<-data.frame(name_samples=c("test1","test2","test3","Tester"),
-                   n_elements=c(length(test1),length(test2),length(test3),length(Tester)))
+smpRes<-data.frame(name_samples=c("test1","test1_bis","test1_ter","test2","test3","Tester"),
+                   n_elements=c(length(test1),length(test1_bis),length(test1_ter),length(test2),length(test3),length(Tester)))
 
 ggplot(data=smpRes, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
   geom_bar(stat = "identity") +
-  ggtitle("number of elements")
+  ggtitle("number of elements") +
+  scale_fill_manual(values = nineColors)
 
-list_of_vectors <- list("test1" = test1, "test2" = test2, "test3" = test3, "Tester" = Tester)
+smpRes2<-data.frame(name_samples=c("test1","test1_bis","test1_ter","test2","test3","Tester","Universe"),
+                   n_elements=c(length(test1),length(test1_bis),length(test1_ter),length(test2),length(test3),length(Tester),100000))
 
-ggvenn(list_of_vectors)
+ggplot(data=smpRes2, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
+  geom_bar(stat = "identity") +
+  ggtitle("number of elements") +
+  scale_fill_manual(values = nineColors)
 ```
 
 ```{r calculate_sampleassociations}
@@ -149,10 +204,13 @@ setwd(homeDir)
 if(!file.exists("simple_PT.RData")){
 
 df1<-funX(A=test1,B=Tester,ntimes = 5000)
+df1_bis<-funX(A=test1_bis,B=Tester,ntimes = 5000)
+df1_ter<-funX(A=test1_ter,B=Tester,ntimes = 5000)
+
 df2<-funX(A=test2,B=Tester,ntimes = 5000)
 df3<-funX(A=test3,B=Tester,ntimes = 5000)
 
-save(df1,df2,df3,file="simple_PT.RData")
+save(df1,df1_bis,df1_ter,df2,df3,file="simple_PT.RData")
 }else{
   load("simple_PT.RData")
 }
@@ -161,13 +219,16 @@ save(df1,df2,df3,file="simple_PT.RData")
 
 ```{r multiple_PTs}
 setwd(homeDir)
+
 if(!file.exists("multi_PT.RData")){
   
-lsfd1 <- calcLSFD(A=test1,B=Tester, nrep = 30, ntimes= 1000)
-lsfd2 <- calcLSFD(A=test2,B=Tester, nrep = 30, ntimes= 1000)
-lsfd3 <- calcLSFD(A=test3,B=Tester, nrep = 30, ntimes= 1000)
+lsfd1 <- calcLSFD(A=test1,B=Tester, nrep = 100, ntimes= 3000)
+lsfd1_bis <- calcLSFD(A=test1_bis,B=Tester, nrep = 100, ntimes= 3000)
+lsfd1_ter <- calcLSFD(A=test1_ter,B=Tester, nrep = 100, ntimes= 3000)
+lsfd2 <- calcLSFD(A=test2,B=Tester, nrep = 100, ntimes= 3000)
+lsfd3 <- calcLSFD(A=test3,B=Tester, nrep = 100, ntimes= 3000)
 
-save(lsfd1,lsfd2,lsfd3,file="multi_PT.RData")
+save(lsfd1,lsfd1_bis,lsfd1_ter,lsfd2,lsfd3,file="multi_PT.RData")
 }else{
   load("multi_PT.RData")
 }
@@ -177,19 +238,51 @@ save(lsfd1,lsfd2,lsfd3,file="multi_PT.RData")
 
 ## Simple PermTest
 
+SimplePT test, refers to a single set of permutations of the vector A (5000 permutations), the calculation of zscore will be applied by considering the number of elements in common between the considered **testX** with the vector Tester.  To assess the variability of the zscore using a sub-population these will be calculated using an increasing fraction of the sample (for each fraction 5000 permutations). The value of **zscore** and **normalized zscore** for different populations will be shown by graph.  
+
 ::: {.panel-tabset}
 
 # Test1 vs Tester SimplePT
+
 ```{r}
 
-p1<-simplePTplot(df1)
 
+list_of_vectors <- list("test1" = test1, "Tester" = Tester)
+ggvenn(list_of_vectors,fill_color = c(nineColors[1],(nineColors[6])))
+
+p1<-simplePTplot(df1)
+p1
+```
+
+# Test1_bis vs Tester SimplePT
+
+```{r}
+
+list_of_vectors <- list("test1_bis" = test1_bis, "Tester" = Tester)
+ggvenn(list_of_vectors,fill_color = c(nineColors[2],(nineColors[6])))
+
+p1<-simplePTplot(df1_bis)
+p1
+```
+
+# Test1_ter vs Tester SimplePT
+
+```{r}
+
+list_of_vectors <- list("test1_ter" = test1_ter, "Tester" = Tester)
+ggvenn(list_of_vectors,fill_color = c(nineColors[3],(nineColors[6])))
+
+p1<-simplePTplot(df1_ter)
 p1
 ```
 
 # Test2 vs Tester SimplePT
 
 ```{r}
+
+list_of_vectors <- list("test2" = test2, "Tester" = Tester)
+ggvenn(list_of_vectors,fill_color = c(nineColors[4],(nineColors[6])))
+
 p2 <- simplePTplot(df2)
 p2
 ```
@@ -197,6 +290,9 @@ p2
 # Test3 vs Tester SimplePT
 
 ```{r}
+list_of_vectors <- list("test3" = test3, "Tester" = Tester)
+ggvenn(list_of_vectors,fill_color = c(nineColors[5],(nineColors[6])))
+
 p3 <- simplePTplot(df3)
 p3
 ```
@@ -205,12 +301,26 @@ p3
 
 ## Multi PermTest
 
+MultiplPT test, it basically repeats the procedure implemented in simple perm test 100 times, all values will be graphed using boxplots that will represent the variablility in case of repetition of the analysis, this procedure allows to evaluate the robustness of the results of **zscore** and **normalized zscore**. 
+
 ::: {.panel-tabset}
 
 # Test1 vs Tester MultiPT
 ```{r}
 
 plotLSFD(lsfd1)
+```
+
+# Test1_bis vs Tester MultiPT
+```{r}
+
+plotLSFD(lsfd1_bis)
+```
+
+# Test1_ter vs Tester MultiPT
+```{r}
+
+plotLSFD(lsfd1_ter)
 ```
 
 # Test2 vs Tester MultiPT
