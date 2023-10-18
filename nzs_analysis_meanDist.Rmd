@@ -20,7 +20,7 @@ library(tidyverse)
 
 ## Function: individual plots
 ```{r}
-funPlot <- function(full_df, Bname, xlabs) {
+funPlot <- function(full_df, Bname, xlabs = xlabs) {
 ggplot(full_df[full_df$B == Bname,], aes(x = fraction, y = score, color = type, group = type)) +
   facet_grid(type~B, scale = "free") +
   geom_point() +
@@ -77,18 +77,18 @@ wrapPlots <- function(r1, permList_zs, permList_nzs, ran_title = "RaR") {
   all_B <- unique(full_df$B)
   
   # Generate a list of plots using plotting function
-  plotList <- lapply(all_B, FUN = funPlot, full_df = full_df, xlabs = xlabs)
+  plotList <- lapply(all_B, FUN = funPlot, full_df = full_df,  xlabs = xlabs)
   
   # Plit in two sublists to generate two PDFs
   subList1 <- plotList[1:15]
   subList2 <- plotList[16:35]
   
   # Save PDFs
-  pdf(paste("plots/numOverlaps_nzs/summary_", ran_title, "_", r1, "_1.pdf", sep = ""), height = 10, width = 20)
+  pdf(paste("plots/meanDist_nzs/summary_", ran_title, "_", r1, "_1.pdf", sep = ""), height = 10, width = 20)
   print(wrap_plots(subList1, ncol = 5))
   dev.off()
   
-  pdf(paste("plots/numOverlaps_nzs/summary_", ran_title, "_", r1, "_2.pdf", sep = ""), height = 10, width = 20)
+  pdf(paste("plots/meanDist_nzs/summary_", ran_title, "_", r1, "_2.pdf", sep = ""), height = 10, width = 20)
   print(wrap_plots(subList2, ncol = 5))
   dev.off() 
 }
@@ -98,9 +98,9 @@ wrapPlots <- function(r1, permList_zs, permList_nzs, ran_title = "RaR") {
 ```{r}
 regSets <- readRDS("regionSets/ENCODE_filterScore.RDS")
 
-permRes_RaR <- readRDS("hpcResults/permResList_RaR_countOnce.RDS")
-permRes_ReR <- readRDS("hpcResults/permResList_ReR_countOnce.RDS")
-permRes_ReG <- readRDS("hpcResults/permResList_ReG_countOnce.RDS")
+permRes_RaR <- readRDS("hpcResults/permResList_RaR_meanDist.RDS")
+permRes_ReR <- readRDS("hpcResults/permResList_ReR_meanDist.RDS")
+permRes_ReG <- readRDS("hpcResults/permResList_ReG_meanDist.RDS")
 ```
 
 # Generate matrix and plot for all tests
@@ -122,7 +122,7 @@ permList_nzs_ReG <- lapply(permRes_ReG, FUN = makeCrosswiseMatrix, symm_matrix =
 setNames <- c("MAFF_ENCFF005YUC", "FOXA1_ENCFF011QFM", "RAD21_ENCFF155CEQ", "POLR2A_ENCFF159PYD", 
               "CTCF_ENCFF199YFA", "H3K9me3_ENCFF372HCL", "H3K27ac_ENCFF392KDI", "H3K4me3_ENCFF982DUT")
 
-lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_RaR, permList_nzs_RaR, ran_title = "RaR")})
+lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_RaR, permList_nzs_RaR, ran_title = "RaR_meanDist")})
 lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReR, permList_nzs_ReR, ran_title = "ReR")})
 lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReG, permList_nzs_ReG, ran_title = "ReG")})
 ```
@@ -134,10 +134,8 @@ lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReG, permList_nzs_Re
 r1 <- "CTCF_ENCFF199YFA"
 r2 <- "RAD21_ENCFF155CEQ" # name of Granges that we want to compare with 
 
-cwPT <- permList_zs_RaR[[r1]]
-cwPTn <- permList_nzs_RaR[[r1]]
-
-unlist(lapply(cwPT@multiOverlaps, FUN = function (x) unique(x$n_regionA)))
+cwPT <- permList_zs[[r1]]
+cwPTn <- permList_nzs[[r1]]
 
 matX<-t(cwPT@matrix$GMat)
 matX<-as.data.frame(matX[order(rownames(matX)), order(colnames(matX))])
