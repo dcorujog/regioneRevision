@@ -165,18 +165,20 @@ The use of the nZS was originally conceptualized and tested in the context of ev
 
 An overlap between two genomic regions can be defined by different criteria, but eventually comes down to a binary event: either two regions are considered to overlap or not. We model this probabilistic behavior by reducing the concept of region sets to numerical vectors. In essence, we can think of these numbers as coordinates on the genome and the regions reduced to single points. If the same number is present in two vectors, that represents one "overlap".
 
-Following this reasoning, we create 5 vectors containing a set of numbers (not replicated), all of them chosen from a "coordinate universe" of 1 to 100000 with the following rules:
+Following this reasoning, we create 5 vectors (@fig-barplot) containing a set of numbers (not replicated), all of them chosen from a "coordinate universe" of 1 to 100000 with the following rules:
 
 **Tester** - 1000 **random** numbers chosen from our universe <br> **test1** - 250 numbers: 50 **present** in Tester and 200 **random** <br> **test1_bis** - 1050 numbers: 50 **present** in Tester and 1000 **random** <br> **test1_ter** - 3000 numbers: 1000 **present** in Tester and 2000 **random** <br> **test2** - 500 **random** numbers <br> **test3** - 500 **random** numbers **not** present in Tester <br>
 
 **testX** samples will be associated with Tester using permutation tests to simulate divergent cases of association. <br>
 
-```{r}
+```{r fig.width=10, fig.height=12}
+#| label: fig-barplot
+#| fig-cap: "barplot number of regions "
 
 smpRes<-data.frame(name_samples=c("test1","test1_bis","test1_ter","test2","test3","Tester"),
                    n_elements=c(length(test1),length(test1_bis),length(test1_ter),length(test2),length(test3),length(Tester)))
 
-ggplot(data=smpRes, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
+p1 <- ggplot(data=smpRes, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
   geom_bar(stat = "identity") +
   ggtitle("number of elements") +
   scale_fill_manual(values = nineColors)
@@ -184,10 +186,12 @@ ggplot(data=smpRes, aes(x=name_samples,y=n_elements,fill=name_samples)) +
 smpRes2<-data.frame(name_samples=c("test1","test1_bis","test1_ter","test2","test3","Tester","Universe"),
                    n_elements=c(length(test1),length(test1_bis),length(test1_ter),length(test2),length(test3),length(Tester),100000))
 
-ggplot(data=smpRes2, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
+p2 <- ggplot(data=smpRes2, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
   geom_bar(stat = "identity") +
   ggtitle("number of elements") +
   scale_fill_manual(values = nineColors)
+
+p1/p2
 ```
 
 ```{r calculate_sampleassociations}
@@ -236,57 +240,70 @@ Below, we show the observed overlap between each vector and our Tester, as well 
 ::: panel-tabset
 # Test1 vs Tester SimplePT
 
-```{r}
-
+```{r t1T, fig.width=10, fig.height=14}
+#| label: fig-test1_Tester
+#| fig-cap: "associations test1 - Tester"
 
 list_of_vectors <- list("test1" = test1, "Tester" = Tester)
-ggvenn(list_of_vectors,fill_color = c(nineColors[1],(nineColors[6])))
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[1],(nineColors[6])))
 
 p1<-simplePTplot(df1)
-p1
+pvenn/p1
 ```
 
 # Test1_bis vs Tester SimplePT
 
-```{r}
+```{r t1_bisT,fig.width=10, fig.height=14}
+#| label: fig-test1_bis_Tester
+#| fig-cap: "associations test1_bis - Tester"
+
 
 list_of_vectors <- list("test1_bis" = test1_bis, "Tester" = Tester)
-ggvenn(list_of_vectors,fill_color = c(nineColors[2],(nineColors[6])))
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[2],(nineColors[6])))
 
 p1<-simplePTplot(df1_bis)
-p1
+pvenn/p1
 ```
 
 # Test1_ter vs Tester SimplePT
 
-```{r}
+```{r t1_terT,fig.width=10, fig.height=14}
+#| label: fig-test1_ter_Tester
+#| fig-cap: "associations test1_ter - Tester"
+
 
 list_of_vectors <- list("test1_ter" = test1_ter, "Tester" = Tester)
-ggvenn(list_of_vectors,fill_color = c(nineColors[3],(nineColors[6])))
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[3],(nineColors[6])))
 
 p1<-simplePTplot(df1_ter)
-p1
+p1/pvenn
 ```
 
 # Test2 vs Tester SimplePT
 
-```{r}
+```{r t2_T, fig.width=10, fig.height=14}
+#| label: fig-test2_Tester
+#| fig-cap: "associations test2 - Tester"
+
 
 list_of_vectors <- list("test2" = test2, "Tester" = Tester)
-ggvenn(list_of_vectors,fill_color = c(nineColors[4],(nineColors[6])))
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[4],(nineColors[6])))
 
 p2 <- simplePTplot(df2)
-p2
+pvenn / p2
 ```
 
 # Test3 vs Tester SimplePT
 
-```{r}
+```{r t3_T,fig.width=10, fig.height=14}
+#| label: fig-test3_Tester
+#| fig-cap: "associations test3 - Tester"
+#| 
 list_of_vectors <- list("test3" = test3, "Tester" = Tester)
-ggvenn(list_of_vectors,fill_color = c(nineColors[5],(nineColors[6])))
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[5],(nineColors[6])))
 
 p3 <- simplePTplot(df3)
-p3
+pvenn/ p3
 ```
 :::
 
@@ -299,34 +316,51 @@ Below, boxplot representations of the 100 results obtained for each test and sub
 ::: panel-tabset
 # Test1 vs Tester MultiPT
 
-```{r}
+```{r mt1T, fig.width=14, fig.height=10}
+#| label: fig-multi_test1_Tester
+#| fig-cap: "multi associations test1 - Tester"
 
 plotLSFD(lsfd1)
 ```
 
 # Test1_bis vs Tester MultiPT
 
-```{r}
+```{r mt1_bisT, fig.width=14, fig.height=10}
+#| label: fig-multi_test1_bis_Tester
+#| fig-cap: "multi associations test1_bis - Tester"
+
 
 plotLSFD(lsfd1_bis)
 ```
 
 # Test1_ter vs Tester MultiPT
 
-```{r}
+```{r mt1_terT, fig.width=14, fig.height=10}
+#| label: fig-multi_test1_ter_Tester
+#| fig-cap: "multi associations test1_ter - Tester"
 
 plotLSFD(lsfd1_ter)
 ```
 
 # Test2 vs Tester MultiPT
 
-```{r}
+```{r mt2T, fig.width=14, fig.height=10}
+#| label: fig-multi_test2_Tester
+#| fig-cap: "multi associations test2 - Tester"
+
 plotLSFD(lsfd2)
 ```
 
 # Test3 vs Tester MultiPT
 
-```{r}
+```{r mt3T, fig.width=14, fig.height=10}
+#| label: fig-multi_test3_Tester
+#| fig-cap: "multi associations test3 - Tester"
+
 plotLSFD(lsfd3)
 ```
 :::
+
+## Conclusion1
+
+From the given examples, we can deduce that the normalized z-score tends to be stable, while the regular z-score seems to depend on the number of items considered. When assessing a library of biological data, we cannot always guarantee that the elements we identify cover the entirety of the elements present. The normalized z-score is useful in portraying the degree of association in such scenarios. However, the normalized z-score should be employed solely when the p-value linked to the permutation test (and hence the z-score) is statistically significant. As seen in @fig-test2_Tester and @fig-multi_test2_Tester, both the z-score and the normalized z-score are notably variable, yet they oscillate around a value of 0. If 'regionReloaded' is set as the default, it will replace the value of the normalized z-score with 0 in this context. The threshold and values for this action can be adjusted through the function's options.
