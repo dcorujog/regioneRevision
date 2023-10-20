@@ -363,4 +363,41 @@ plotLSFD(lsfd3)
 
 ## Conclusion1
 
-From the given examples, we can deduce that the normalized z-score tends to be stable, while the regular z-score seems to depend on the number of items considered. When assessing a library of biological data, we cannot always guarantee that the elements we identify cover the entirety of the elements present. The normalized z-score is useful in portraying the degree of association in such scenarios. However, the normalized z-score should be employed solely when the p-value linked to the permutation test (and hence the z-score) is statistically significant. As seen in @fig-test2_Tester and @fig-multi_test2_Tester, both the z-score and the normalized z-score are notably variable, yet they oscillate around a value of 0. If 'regionReloaded' is set as the default, it will replace the value of the normalized z-score with 0 in this context. The threshold and values for this action can be adjusted through the function's options.
+From the given examples, we can deduce that the normalized z-score tends to be stable, while the regular z-score seems to depend on the number of items considered. When assessing a library of biological data, we cannot always guarantee that the elements we identify cover the entirety of the elements present. The normalized z-score is useful in portraying the degree of association in such scenarios. However, the normalized z-score should be employed solely when the p-value linked to the permutation test (and hence the z-score) is statistically significant. As seen in @fig-test2_Tester and @fig-multi_test2_Tester, both the z-score and the normalized z-score are notably variable, yet they oscillate around a value of 0. With default parameters, the functions in 'regioneReloaded' will replace the value of the normalized z-score with 0 in this context. The threshold p-value and substition value for this action can be adjusted through the function's options.
+
+# Test with biological datasets
+
+To test the behaviour of the permutation test and its associated z-zscore and normalized z-score, we make use of publicly available ChIP-Seq datasets generated and available through
+the ENCODE project. In particular, we will use the called peaks as annotated by the ENCODE pipeline as genomic region sets to input into regioneReloaded.
+
+In particular, we test the association of H3K4me3 peaks with subunits of the RNA Polymerase II complex (POLR2A and POLR2G) and the histone post-translation modifications H3K27Ac and H3K9me3. H3K4me3 is a histone modification strongly enriched at the promoter region of actively transcribed genes. Hence, we expect an association with POLR2A and POLR2G which form part of the transcriptional machinery. H3K27Ac is another histone mark generally enriched at active promoters and enhancer elements, hence we also expect a positive association with H3K4me3. On the other hand, H3K9me3 is a histone mark present mostly at heterochromatic elements that are transcriptionally silenced, which means it will rarely coincide with the above mentioned region sets.
+
+- Explain how the permtest was performed, ntimes, numOverlaps and different randomization functions -
+
+```{r}
+plots_h3k4me3_rar <- readRDS("plots_nzs_H3K4me3_RaR.RDS")
+plots_h3k4me3_reg <- readRDS("plots_nzs_H3K4me3_ReG.RDS")
+plots_h3k4me3_rer <- readRDS("plots_nzs_H3K4me3_ReR.RDS")
+```
+
+::: panel-tabset
+# Randomize Regions
+```{r}
+plotList <- plots_h3k4me3_rar
+wrap_plots(plotList, ncol = 2)
+```
+
+# Resample Genome
+```{r}
+plotList <- plots_h3k4me3_reg
+wrap_plots(plotList, ncol = 2)
+```
+
+# Resample Regions
+```{r}
+plotList <- plots_h3k4me3_rer
+wrap_plots(plotList, ncol = 2)
+```
+:::
+
+- Explain and show examples using meanDist as evaluation -

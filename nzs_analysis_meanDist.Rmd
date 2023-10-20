@@ -123,8 +123,8 @@ setNames <- c("MAFF_ENCFF005YUC", "FOXA1_ENCFF011QFM", "RAD21_ENCFF155CEQ", "POL
               "CTCF_ENCFF199YFA", "H3K9me3_ENCFF372HCL", "H3K27ac_ENCFF392KDI", "H3K4me3_ENCFF982DUT")
 
 lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_RaR, permList_nzs_RaR, ran_title = "RaR_meanDist")})
-lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReR, permList_nzs_ReR, ran_title = "ReR")})
-lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReG, permList_nzs_ReG, ran_title = "ReG")})
+lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReR, permList_nzs_ReR, ran_title = "ReR_meanDist")})
+lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReG, permList_nzs_ReG, ran_title = "ReG_meanDist")})
 ```
 
 # Plot nzs and zscore for a specific comparison
