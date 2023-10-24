@@ -5,7 +5,7 @@ setwd("/mnt/beegfs/dcorujo/REGIONER/regioneRevision")
 library(regioneReloaded)
 
 # Load region sets
-encode <- readRDS("regionSets/ENCODE_filtered.RDS")
+encode <- readRDS("regionSets/ENCODE_filterScore.RDS")
 universe <- readRDS("regionSets/universe_ENCODE_filtered.RDS")
 
 cores <- 50
