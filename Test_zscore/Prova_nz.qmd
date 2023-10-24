@@ -382,19 +382,22 @@ plots_h3k4me3_rer <- readRDS("plots_nzs_H3K4me3_ReR.RDS")
 
 ::: panel-tabset
 # Randomize Regions
-```{r}
+```{r fig.width=10, fig.height=14}
+
 plotList <- plots_h3k4me3_rar
 wrap_plots(plotList, ncol = 2)
 ```
 
 # Resample Genome
-```{r}
+```{r fig.width=10, fig.height=14}
+
 plotList <- plots_h3k4me3_reg
 wrap_plots(plotList, ncol = 2)
 ```
 
 # Resample Regions
-```{r}
+```{r fig.width=10, fig.height=14}
+
 plotList <- plots_h3k4me3_rer
 wrap_plots(plotList, ncol = 2)
 ```
