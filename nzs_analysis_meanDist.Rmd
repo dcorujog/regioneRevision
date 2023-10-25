@@ -78,19 +78,7 @@ wrapPlots <- function(r1, permList_zs, permList_nzs, ran_title = "RaR") {
   
   # Generate a list of plots using plotting function
   plotList <- lapply(all_B, FUN = funPlot, full_df = full_df,  xlabs = xlabs)
-  
-  # Plit in two sublists to generate two PDFs
-  subList1 <- plotList[1:15]
-  subList2 <- plotList[16:35]
-  
-  # Save PDFs
-  pdf(paste("plots/meanDist_nzs/summary_", ran_title, "_", r1, "_1.pdf", sep = ""), height = 10, width = 20)
-  print(wrap_plots(subList1, ncol = 5))
-  dev.off()
-  
-  pdf(paste("plots/meanDist_nzs/summary_", ran_title, "_", r1, "_2.pdf", sep = ""), height = 10, width = 20)
-  print(wrap_plots(subList2, ncol = 5))
-  dev.off() 
+  return(plotList)
 }
 ```
 
@@ -130,13 +118,16 @@ lapply(setNames, function(x) {wrapPlots(r1 = x, permList_zs_ReG, permList_nzs_Re
 # Plot nzs and zscore for a specific comparison
 
 ```{r}
+r1 <- "H3K4me3_ENCFF982DUT"
 
-r1 <- "CTCF_ENCFF199YFA"
-r2 <- "RAD21_ENCFF155CEQ" # name of Granges that we want to compare with 
+# Obtain permTest from list
+cwPT <- permList_zs_RaR[[r1]]
+cwPTn <- permList_nzs_RaR[[r1]]
 
-cwPT <- permList_zs[[r1]]
-cwPTn <- permList_nzs[[r1]]
+# Obtain n regions for plotting later
+xlabs <- unlist(lapply(cwPT@multiOverlaps, FUN = function (x) unique(x$n_regionA)))
 
+# Extract matrices of ZS and nZS
 matX<-t(cwPT@matrix$GMat)
 matX<-as.data.frame(matX[order(rownames(matX)), order(colnames(matX))])
 matX
@@ -145,27 +136,64 @@ matXn<-t(cwPTn@matrix$GMat)
 matXn<-as.data.frame(matXn[order(rownames(matXn)), order(colnames(matXn))])
 matXn
 
-# Generate a table for plotting
-dt_test<-data.frame(frac = rownames(matX),
-                    zs = matX[,r2],
-                    nzs = matXn[,r2])
-dt_test
+# Conver to dataframe to prepare for tidyr funcions
+df <- data.frame(matX)
+df$fraction <- rownames(df)
 
-title <- paste(r1, r2, sep = " vs ")
-p1 <- ggplot(data=dt_test, aes(x=frac, y = zs, group = "x")) +
-  geom_line(color = "green4") +
-  geom_point(color = "green4") +
-  xlab("Fraction") +
-  ylab("z-score") +
-  labs(title = title) +
-  theme(plot.title = element_text(size = 9))
+df2 <- data.frame(matXn)
+df2$fraction <- rownames(df2)
 
-p2<-ggplot(data=dt_test,aes(x = frac, y = nzs, group = "x"),) +
-  geom_line( color="darkorange") +
-  geom_point(color="darkorange") + 
-  xlab("Fraction") + 
-  ylab("norm z-score") +
-  coord_cartesian(ylim = c(0, 20))
+# Melt ZS and nZS dfs into long format
+meltmat <- tidyr::pivot_longer(df, cols = !fraction, names_to = "B", values_to = "score")
+meltmat$type <- "zscore"
 
-p1|p2 # plot results
+meltmat2 <- tidyr::pivot_longer(df2, cols = !fraction, names_to = "B", values_to = "score")
+meltmat2$type <- "n_zscore"
+
+# Join into a single df
+full_df <- full_join(meltmat, 
+          meltmat2)
+
+# Reorder factors
+full_df$type <- factor(full_df$type, levels = c("zscore", "n_zscore"))
+
+all_B <- unique(full_df$B)
+```
+
+## Function to plot selected comparisons
+```{r}
+# Function to plot selected comparisons
+
+paperPlot <- function(r2, full_df) {
+  p1 <- full_df %>%
+  filter(B == r2) %>%
+  ggplot(aes(x = fraction, y = score, color = type, group = type)) +
+  facet_grid(type~B, scale = "free") +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = function(x){c(min(0, x) * 1.1, max(0, x) * 1.5)}) +
+  scale_color_manual(values = c("green4", "darkorange")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        legend.position = "none") +
+  scale_x_discrete(labels = xlabs) +
+  labs(subtitle = r1)
+  return(p1)
+}
+```
+# Generate plotList of selected comparisons and save
+```{r}
+# Generate plotlist of selected comparisons
+# Check names
+unique(full_df$B)
+
+setNames <- c("POLR2A_ENCFF159PYD", "POLR2A_ENCFF354VWZ", 
+              "POLR2G_ENCFF485SII", "POLR2G_ENCFF551IJP",
+              "H3K27ac_ENCFF392KDI", "H3K9me3_ENCFF372HCL")
+
+plotList <- lapply(setNames, FUN = function(x) paperPlot(r2 = x, full_df = full_df))
+
+wrap_plots(plotList, ncol = 2)
+
+saveRDS(plotList, file = "Test_zscore/plots_nzs_H3K4me3_RaR_meandist.RDS")
 ```

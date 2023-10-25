@@ -1,0 +1,433 @@
+---
+title: "Normalized z-score for genomic association tests"
+subtitle: "Authors: Roberto Malinverni and David Corujo Gracia"
+format: 
+  html:
+    toc: true
+    theme: yeti
+    spacing: double
+    highlight: tango
+    # code-fold: true
+    # code-tools: true
+    # code-overflow: wrap
+    # code-block-border-left: "#008d69"
+    highlight-style: tango
+    execute:
+      warning: false
+      echo: false
+    fig-responsive: true
+    embed-resources: true
+
+html_dependency:
+  jQuery:
+      src: "https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"
+      script: "jquery.min.js"
+graphics: true
+linkcolor: blue
+fontsize: 15 pt
+urlcolor: blue
+editor: visual
+---
+
+## Introduction
+
+In the R package [*regioneReloaded*](https://bioconductor.org/packages/release/bioc/html/regioneReloaded.html) we implement the use of a "normalized z-score" (nZS) as a useful parameter to reduce the z-score (ZS) value dependency on the number of regions included in the context of a permutation test using genomic regions. The nZS is defined as the ZS divided by the square root of the number of elements in a region set.
+
+In this script, we showcase a series of examples to test and empirically demonstrate the relationship between the ZS and nZS values when performing permutation tests. First, we simplify the problem to a minimal probabilistic scenario. Then, we report the results of anlaysis run on publicly available ChIP-Seq datasets from the [ENCODE project](https://www.encodeproject.org/).
+
+```{r libraries}
+
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(ggvenn)
+library(patchwork)
+# library(nVennR)
+
+```
+
+```{r home_dir}
+# homeDir <- "/Test_zscore"
+# setwd(homeDir)
+```
+
+```{r colors}
+nineColors<-c("#fd7f6f", "#7eb0d5", "#b2e061", "#bd7ebe", "#ffb55a", "#ffee65", "#beb9db", "#fdcce5", "#8bd3c7")
+```
+
+```{r funcions}
+
+permAB<-function(A,B,sampling =1,ntimes=5000){
+  A<- sample(A,round(length(A)*sampling),replace = FALSE)
+  observed<-sum(A %in% B)
+  permuted<-vector()
+  for(i in 1:ntimes){
+    permuted[i]<-sum(sample(100000,length(A),replace = FALSE) %in% B)
+  }
+  meanPerm<-mean(permuted)
+  sdPerm<-sd(permuted)
+  
+  zscore<- (observed - meanPerm)/sdPerm
+  nzscore <- zscore/sqrt(length(A))
+  nv<-length(A)
+    
+    return(c(nv,zscore,nzscore))
+}
+
+funX<-function(A,B,ntimes=1000){
+  listCax<-lapply(seq(0.1,1,0.1),permAB,A=A,B=B,ntimes=ntimes)
+  df<-as.data.frame(do.call(rbind,listCax))
+  colnames(df)<-c("n","zs","nzs")
+  return(df)
+}
+
+extNZS<-function(x){
+  res<-x$nzs
+  return(res)
+}
+
+extZS<-function(x){
+  res<-x$zs
+  return(res)
+}
+
+calcLSFD<-function(A,B,nrep=10,ntimes=1000){
+  lsdf<-lapply(rep(list(A),nrep),funX,B=B,ntimes=ntimes)
+  X<-as.data.frame(t(do.call(cbind,lapply(lsdf,extNZS))))
+  colnames(X)<-lsdf[[1]]$n
+  dfNZs<-reshape2::melt(X)
+  dfNZs$value[is.infinite(dfNZs$value)]<-NA
+  Y<-as.data.frame(t(do.call(cbind,lapply(lsdf,extZS))))
+  colnames(Y)<-lsdf[[1]]$n
+  dfZs<-reshape2::melt(Y)
+  dfZs$value[is.infinite(dfZs$value)]<-NA
+  return(list(ZS=dfZs,nZS=dfNZs))
+}
+
+plotLSFD<-function(lsfd){
+  
+  p1 <- ggplot(data=lsfd$nZS, aes(x = variable, y=value )) +
+    geom_boxplot(color="black",fill="#ffb55a")+
+    ggtitle("nzs")
+  
+  p2 <- ggplot(data=lsfd$ZS, aes(x = variable, y=value )) +
+    geom_boxplot(color="black",fill="#b2e061")+
+    ggtitle("zs")
+  
+  return(p2 | p1)
+}
+
+simplePTplot<-function(df){
+  mnzs<-mean(df$nzs)
+  mx<-max(df$nzs)
+  mn<-min(df$nzs)
+  
+  p1<-ggplot(data=df, aes(x = n, y=zs )) +
+    geom_line(color="#b2e061")+
+    geom_point(color="#b2e061") +
+    ggtitle("zs")
+  
+  p2<-ggplot(data=df, aes(x = n, y=nzs )) +
+    geom_line(color="#ffb55a")+
+    geom_point(color="#ffb55a") +
+    ggtitle("nzs") + ylim(mn-(abs(mnzs*.5)),mx+(abs(mnzs*.5)))
+  
+  return(p1 | p2)
+  
+}
+```
+
+```{r simulated samples}
+
+if(!file.exists("samples.RData")){
+
+Tester<-sample(100000,1000,replace = FALSE)
+test1<-c(sample(100000,200,replace = FALSE),sample(Tester,50))
+test1_bis<-c(sample(100000,1000,replace = FALSE),sample(Tester,50))
+test1_ter<-c(sample(100000,2000,replace = FALSE),sample(Tester,1000))
+
+
+test2<-c(sample(100000,500,replace = FALSE))
+test3<-c(sample(100000,1000,replace = FALSE))
+test3<- test3[-(which(test3 %in% Tester))] |> sample(500) 
+
+save(test1,test1_bis,test1_ter,test2,test3,Tester,file="samples.RData")
+
+}else{
+  load("samples.RData")
+}
+
+```
+
+## Simulated samples
+
+The use of the nZS was originally conceptualized and tested in the context of evaluating the number of overlaps between genomic regions, although we test its usability with other evaluation methods later in this document.
+
+An overlap between two genomic regions can be defined by different criteria, but eventually comes down to a binary event: either two regions are considered to overlap or not. We model this probabilistic behavior by reducing the concept of region sets to numerical vectors. In essence, we can think of these numbers as coordinates on the genome and the regions reduced to single points. If the same number is present in two vectors, that represents one "overlap".
+
+Following this reasoning, we create 5 vectors (@fig-barplot) containing a set of numbers (not replicated), all of them chosen from a "coordinate universe" of 1 to 100000 with the following rules:
+
+**Tester** - 1000 **random** numbers chosen from our universe <br> **test1** - 250 numbers: 50 **present** in Tester and 200 **random** <br> **test1_bis** - 1050 numbers: 50 **present** in Tester and 1000 **random** <br> **test1_ter** - 3000 numbers: 1000 **present** in Tester and 2000 **random** <br> **test2** - 500 **random** numbers <br> **test3** - 500 **random** numbers **not** present in Tester <br>
+
+**testX** samples will be associated with Tester using permutation tests to simulate divergent cases of association. <br>
+
+```{r fig.width=10, fig.height=12}
+#| label: fig-barplot
+#| fig-cap: "barplot number of regions "
+
+smpRes<-data.frame(name_samples=c("test1","test1_bis","test1_ter","test2","test3","Tester"),
+                   n_elements=c(length(test1),length(test1_bis),length(test1_ter),length(test2),length(test3),length(Tester)))
+
+p1 <- ggplot(data=smpRes, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
+  geom_bar(stat = "identity") +
+  ggtitle("number of elements") +
+  scale_fill_manual(values = nineColors)
+
+smpRes2<-data.frame(name_samples=c("test1","test1_bis","test1_ter","test2","test3","Tester","Universe"),
+                   n_elements=c(length(test1),length(test1_bis),length(test1_ter),length(test2),length(test3),length(Tester),100000))
+
+p2 <- ggplot(data=smpRes2, aes(x=name_samples,y=n_elements,fill=name_samples)) + 
+  geom_bar(stat = "identity") +
+  ggtitle("number of elements") +
+  scale_fill_manual(values = nineColors)
+
+p1/p2
+```
+
+```{r calculate_sampleassociations}
+
+if(!file.exists("simple_PT.RData")){
+
+df1<-funX(A=test1,B=Tester,ntimes = 5000)
+df1_bis<-funX(A=test1_bis,B=Tester,ntimes = 5000)
+df1_ter<-funX(A=test1_ter,B=Tester,ntimes = 5000)
+
+df2<-funX(A=test2,B=Tester,ntimes = 5000)
+df3<-funX(A=test3,B=Tester,ntimes = 5000)
+
+save(df1,df1_bis,df1_ter,df2,df3,file="simple_PT.RData")
+}else{
+  load("simple_PT.RData")
+}
+
+```
+
+```{r multiple_PTs}
+if(!file.exists("multi_PT.RData")){
+  
+lsfd1 <- calcLSFD(A=test1,B=Tester, nrep = 100, ntimes= 3000)
+lsfd1_bis <- calcLSFD(A=test1_bis,B=Tester, nrep = 100, ntimes= 3000)
+lsfd1_ter <- calcLSFD(A=test1_ter,B=Tester, nrep = 100, ntimes= 3000)
+lsfd2 <- calcLSFD(A=test2,B=Tester, nrep = 100, ntimes= 3000)
+lsfd3 <- calcLSFD(A=test3,B=Tester, nrep = 100, ntimes= 3000)
+
+save(lsfd1,lsfd1_bis,lsfd1_ter,lsfd2,lsfd3,file="multi_PT.RData")
+}else{
+  load("multi_PT.RData")
+}
+
+
+```
+
+## Simple permutation test
+
+The testing approach presented here performs a permutation test between one of the above described vectors and the Tester vector to determine if the observed "overlap" is significantly different from what we would "expect" randomly. We randomize 5000 times the query vector by sampling the same number of elements from the universe, and record each time the number of overlaps with Tester. We then take the initial observed overlap and compare it to the random distribution, obtaining a Z-score value and an associated p-value. In these examples, we will focus exclusively on the z-score and the normalized z-score.
+
+To assess the variability of the z-score depending on the size of the query set used, we repeat the permutation test several times using increasing sub-fractions of the sample.
+
+Below, we show the observed overlap between each vector and our Tester, as well as the ZS and nZS values obtained using a different fraction of each vector. While the absolute value of the ZS for significant associations greatly increases with bigger sample sizes, the nZS remains much more stable and in a more comparable range between different tests.
+
+::: panel-tabset
+# Test1 vs Tester SimplePT
+
+```{r t1T, fig.width=10, fig.height=14}
+#| label: fig-test1_Tester
+#| fig-cap: "associations test1 - Tester"
+
+list_of_vectors <- list("test1" = test1, "Tester" = Tester)
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[1],(nineColors[6])))
+
+p1<-simplePTplot(df1)
+pvenn/p1
+```
+
+# Test1_bis vs Tester SimplePT
+
+```{r t1_bisT,fig.width=10, fig.height=14}
+#| label: fig-test1_bis_Tester
+#| fig-cap: "associations test1_bis - Tester"
+
+
+list_of_vectors <- list("test1_bis" = test1_bis, "Tester" = Tester)
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[2],(nineColors[6])))
+
+p1<-simplePTplot(df1_bis)
+pvenn/p1
+```
+
+# Test1_ter vs Tester SimplePT
+
+```{r t1_terT,fig.width=10, fig.height=14}
+#| label: fig-test1_ter_Tester
+#| fig-cap: "associations test1_ter - Tester"
+
+
+list_of_vectors <- list("test1_ter" = test1_ter, "Tester" = Tester)
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[3],(nineColors[6])))
+
+p1<-simplePTplot(df1_ter)
+p1/pvenn
+```
+
+# Test2 vs Tester SimplePT
+
+```{r t2_T, fig.width=10, fig.height=14}
+#| label: fig-test2_Tester
+#| fig-cap: "associations test2 - Tester"
+
+
+list_of_vectors <- list("test2" = test2, "Tester" = Tester)
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[4],(nineColors[6])))
+
+p2 <- simplePTplot(df2)
+pvenn / p2
+```
+
+# Test3 vs Tester SimplePT
+
+```{r t3_T,fig.width=10, fig.height=14}
+#| label: fig-test3_Tester
+#| fig-cap: "associations test3 - Tester"
+#| 
+list_of_vectors <- list("test3" = test3, "Tester" = Tester)
+pvenn <- ggvenn(list_of_vectors,fill_color = c(nineColors[5],(nineColors[6])))
+
+p3 <- simplePTplot(df3)
+pvenn/ p3
+```
+:::
+
+## Reproduciblity and stability of ZS and nZS values
+
+Given the stochastic nature of the permutation test, we repeat the procedure described above 100 times for each comparison, with 5000 randomization steps each time. This approach allows us to evaluate the robustness of the results obtained in terms of obtained ZS and nZS values.
+
+Below, boxplot representations of the 100 results obtained for each test and subfraction of the sample. We observe that results are highly reproducible and, in particular, that the nZS shows a very good stability.
+
+::: panel-tabset
+# Test1 vs Tester MultiPT
+
+```{r mt1T, fig.width=14, fig.height=10}
+#| label: fig-multi_test1_Tester
+#| fig-cap: "multi associations test1 - Tester"
+
+plotLSFD(lsfd1)
+```
+
+# Test1_bis vs Tester MultiPT
+
+```{r mt1_bisT, fig.width=14, fig.height=10}
+#| label: fig-multi_test1_bis_Tester
+#| fig-cap: "multi associations test1_bis - Tester"
+
+
+plotLSFD(lsfd1_bis)
+```
+
+# Test1_ter vs Tester MultiPT
+
+```{r mt1_terT, fig.width=14, fig.height=10}
+#| label: fig-multi_test1_ter_Tester
+#| fig-cap: "multi associations test1_ter - Tester"
+
+plotLSFD(lsfd1_ter)
+```
+
+# Test2 vs Tester MultiPT
+
+```{r mt2T, fig.width=14, fig.height=10}
+#| label: fig-multi_test2_Tester
+#| fig-cap: "multi associations test2 - Tester"
+
+plotLSFD(lsfd2)
+```
+
+# Test3 vs Tester MultiPT
+
+```{r mt3T, fig.width=14, fig.height=10}
+#| label: fig-multi_test3_Tester
+#| fig-cap: "multi associations test3 - Tester"
+
+plotLSFD(lsfd3)
+```
+:::
+
+## Conclusion1
+
+From the given examples, we can deduce that the normalized z-score tends to be stable, while the regular z-score seems to depend on the number of items considered. When assessing a library of biological data, we cannot always guarantee that the elements we identify cover the entirety of the elements present. The normalized z-score is useful in portraying the degree of association in such scenarios. However, the normalized z-score should be employed solely when the p-value linked to the permutation test (and hence the z-score) is statistically significant. As seen in @fig-test2_Tester and @fig-multi_test2_Tester, both the z-score and the normalized z-score are notably variable, yet they oscillate around a value of 0. With default parameters, the functions in 'regioneReloaded' will replace the value of the normalized z-score with 0 in this context. The threshold p-value and substition value for this action can be adjusted through the function's options.
+
+# Test with biological datasets
+
+To test the behaviour of the permutation test and its associated z-zscore and normalized z-score, we make use of publicly available ChIP-Seq datasets generated and available through
+the ENCODE project. In particular, we will use the called peaks as annotated by the ENCODE pipeline as genomic region sets to input into regioneReloaded.
+
+In particular, we test the association of H3K4me3 peaks with subunits of the RNA Polymerase II complex (POLR2A and POLR2G) and the histone post-translation modifications H3K27Ac and H3K9me3. H3K4me3 is a histone modification strongly enriched at the promoter region of actively transcribed genes. Hence, we expect an association with POLR2A and POLR2G which form part of the transcriptional machinery. H3K27Ac is another histone mark generally enriched at active promoters and enhancer elements, hence we also expect a positive association with H3K4me3. On the other hand, H3K9me3 is a histone mark present mostly at heterochromatic elements that are transcriptionally silenced, which means it will rarely coincide with the above mentioned region sets. The following results were obtained by using the indicated randomization functions, 5000 permutations and numOverlaps as an evaluation function with count.once set to TRUE.
+
+```{r}
+plots_h3k4me3_rar <- readRDS("plots_nzs_H3K4me3_RaR.RDS")
+plots_h3k4me3_reg <- readRDS("plots_nzs_H3K4me3_ReG.RDS")
+plots_h3k4me3_rer <- readRDS("plots_nzs_H3K4me3_ReR.RDS")
+```
+
+::: panel-tabset
+# Randomize Regions
+```{r fig.width=10, fig.height=14}
+
+plotList <- plots_h3k4me3_rar
+wrap_plots(plotList, ncol = 2)
+```
+
+# Resample Genome
+```{r fig.width=10, fig.height=14}
+
+plotList <- plots_h3k4me3_reg
+wrap_plots(plotList, ncol = 2)
+```
+
+# Resample Regions
+```{r fig.width=10, fig.height=14}
+
+plotList <- plots_h3k4me3_rer
+wrap_plots(plotList, ncol = 2)
+```
+:::
+
+As mentioned above, we originally introduced the nZS in the context of using the overlap between genomic regions as an evaluation, but it is in principle also usable with other evaluation functions. Here we perform the same tests as shown above but using the mean distance between regions as an evaluation function, and observe a similar effect of the nZS being more stable versus different region set sizes. Note that in this case, associatoin that had positive z-score values with number of overlaps now have negative values, since the regions are closer (the distance is smaller between them) than the randomized distribution.
+
+```{r}
+plots_h3k4me3_rar_meandist <- readRDS("plots_nzs_H3K4me3_RaR_meandist.RDS")
+plots_h3k4me3_reg_meandist <- readRDS("plots_nzs_H3K4me3_ReG_meandist.RDS")
+plots_h3k4me3_rer_meandist <- readRDS("plots_nzs_H3K4me3_ReR_meandist.RDS")
+```
+
+::: panel-tabset
+# Randomize Regions
+```{r fig.width=10, fig.height=14}
+
+plotList <- plots_h3k4me3_rar_meandist
+wrap_plots(plotList, ncol = 2)
+```
+
+# Resample Genome
+```{r fig.width=10, fig.height=14}
+
+plotList <- plots_h3k4me3_reg_meandist
+wrap_plots(plotList, ncol = 2)
+```
+
+# Resample Regions
+```{r fig.width=10, fig.height=14}
+
+plotList <- plots_h3k4me3_rer_meandist
+wrap_plots(plotList, ncol = 2)
+```
+:::
